@@ -1,11 +1,15 @@
 {
+  "exclude": ["olives-chat"],
   "compilerOptions": {
     "module": "commonjs",
     "esModuleInterop": true,
     "target": "ESNext",
     "moduleResolution": "node",
     "sourceMap": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "sourceRoot": "src/",
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
   "lib": ["esnext"]
 }
