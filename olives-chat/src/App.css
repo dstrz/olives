@@ -2,3 +2,29 @@
   display: flex;
   flex-direction: column;
 }
+
+header {
+  align-items: center;
+  background-color: olivedrab;
+  display: flex;
+  justify-content: space-between;
+}
+
+.header-link {
+  color: white;
+  padding: 10px;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  max-width: calc(100vw - 32px);
+  padding: 16px;
+  width: 800px;
+  gap: 4px;
+}
+
+.user-name {
+  color: white;
+}
