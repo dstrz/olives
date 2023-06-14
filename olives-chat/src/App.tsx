@@ -18,7 +18,7 @@ const App: React.FC<React.PropsWithChildren> = () => {
           <Link className="header-link" to="/">
             Olives Chat
           </Link>
-          <div className="user-name">Your temporary name is {name}</div>
+          <div className="user-name">You are {name}</div>
         </header>
         <main>
           <Outlet />

@@ -9,12 +9,14 @@
     "copy-front": "robocopy olives-chat/build dist/front /s /e",
     "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/index.js\" \"cd olives-chat && npm run start\"",
     "preinstall": "cd olives-chat && npm i",
+    "start": "node dist",
     "test": "echo \"Error: no test specified\" && exit 1",
     "tsc": "tsc"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@faker-js/faker": "^8.0.2",
     "@google-cloud/pubsub": "^3.7.1",
     "@types/express-session": "^1.17.7",
     "cors": "^2.8.5",

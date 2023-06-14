@@ -1,13 +1,18 @@
-import pubSubClient from "./pub-sub-client";
-import express, { Request, Response } from "express";
+import cors from "cors";
 import { config } from "dotenv";
-import { Message, Subscription, Topic } from "@google-cloud/pubsub";
+import express, { Request, Response } from "express";
+import session from "express-session";
 import { join } from "path";
 import sanitizeHtml from "sanitize-html";
-import session from "express-session";
 import fileStore from "session-file-store";
-import cors from "cors";
-import client from "./pub-sub-client";
+
+import { faker } from "@faker-js/faker";
+import { Message } from "@google-cloud/pubsub";
+
+import pubSubClient, {
+  getOrCreateSubscription,
+  getTopics,
+} from "./pub-sub-client";
 
 interface ChatUser {
   name: string;
@@ -23,14 +28,6 @@ interface ChatIncomingMessage {
   message: string;
 }
 
-const testMessage = {
-  author: {
-    name: "test-pp-gdc",
-  },
-  message: "message-test-1",
-  timestamp: new Date(),
-};
-
 config();
 const app = express();
 const port = process.env.PORT;
@@ -41,6 +38,10 @@ app.use(express.static(join(__dirname, "front")));
 const FileStore = fileStore(session);
 app.use(
   session({
+    genid: () =>
+      faker.helpers.slugify(
+        `${faker.color.human()} ${faker.animal.type()} ${faker.number.hex()}`
+      ),
     secret: process.env.COOKIE_SECRET,
     store: new FileStore(),
     cookie: {
@@ -52,12 +53,7 @@ app.use(
 app.use(cors());
 
 app.get("/api/get-topics-list", async (req: Request, res: Response) => {
-  const topics = await pubSubClient
-    .getTopics()
-    .then((response) =>
-      response.flatMap((x: Topic[]) => x.map((t) => t.name.split("/").at(-1)))
-    );
-  res.send(topics);
+  res.send(await getTopics());
 });
 
 app.get("/api/create-topic/:id", async (req: Request, res: Response) => {
@@ -86,49 +82,6 @@ function extractMessageFromEventData(event: Message) {
     return chatMessage;
   } catch (e) {
     // console.log("failed to parse message:", e, event);
-  }
-
-  return null;
-}
-
-async function getOrCreateSubscription(
-  channelName: string
-): Promise<Subscription | null> {
-  const subName = `subscription-for-channel-${channelName}`;
-
-  try {
-    const subscription = pubSubClient.subscription(subName);
-
-    console.log("getting sub status...");
-    const [isSubscriptionActive] = await subscription.exists();
-
-    console.log("getting sub status result", isSubscriptionActive);
-
-    if (isSubscriptionActive) {
-      return subscription;
-    }
-
-    return createSubscription(channelName, subName);
-  } catch (error) {
-    console.error("unknown error when getting subscription", error);
-    return null;
-  }
-}
-
-async function createSubscription(
-  channelName: string,
-  subscriptionName: string
-): Promise<Subscription | null> {
-  try {
-    console.log("creating subscription");
-    const [result] = await pubSubClient.createSubscription(
-      channelName,
-      subscriptionName
-    );
-
-    return result;
-  } catch (error) {
-    console.error("failed to create subscription", error);
   }
 
   return null;
@@ -181,7 +134,9 @@ app.post("/api/channel/:id", async (req: Request, res: Response) => {
 
   const requestJson = req.body as ChatIncomingMessage;
   if (requestJson.message == null) {
-    console.error("received empty message or badly formated data in post/channel/id");
+    console.error(
+      "received empty message or badly formated data in post/channel/id"
+    );
     return;
   }
 
@@ -190,14 +145,14 @@ app.post("/api/channel/:id", async (req: Request, res: Response) => {
   if (isTopicAvailable) {
     const message = {
       author: {
-        name: req.session.id
+        name: req.session.id,
       },
-      message:  sanitizeHtml(requestJson.message),
-      timestamp: new Date()
-    } as ChatMessage
+      message: sanitizeHtml(requestJson.message),
+      timestamp: new Date(),
+    } as ChatMessage;
 
     await topic.publishMessage({ json: message });
-    res.status(200).send();
+    res.status(200).send("OK");
   } else {
     console.error(`channel/topic with id ${topicName} not found`);
     res.status(404).send();

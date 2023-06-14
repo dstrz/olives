@@ -27,17 +27,21 @@ type Message = {
 
 const Channel = () => {
   const { channelName } = useParams();
-  const user = useContext(NameContext);
+  // const user = useContext(NameContext);
   const textRef = useRef<HTMLInputElement>(null);
   const sendMessage = () => {
     const text = textRef.current?.value;
     if (!text) return;
 
-    if (isDev()) {
-      setMessages([...messages, { user, date: new Date(), text }]);
-    } else {
-      //TODO: sent message to server
-    }
+    // if (isDev()) {
+    //   // setMessages([...messages, { user, date: new Date(), text }]);
+    // } else {
+    fetch(getDevUrl(`/api/channel/${channelName}`), {
+      method: "POST",
+      body: JSON.stringify({ message: text }),
+      headers: { "Content-Type": "application/json" },
+    }).catch(() => {});
+    // }
 
     textRef.current.value = "";
   };
