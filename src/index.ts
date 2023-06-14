@@ -130,7 +130,7 @@ app.get("/api/channel/:id", async (req: Request, res: Response) => {
 
 app.post("/api/channel/:id", async (req: Request, res: Response) => {
   const topicName = req.params.id;
-  const topic = pubSubClient.topic(topicName);
+  const topic = pubSubClient.topic(topicName, { messageOrdering: true });
 
   const requestJson = req.body as ChatIncomingMessage;
   if (requestJson.message == null) {
@@ -151,7 +151,7 @@ app.post("/api/channel/:id", async (req: Request, res: Response) => {
       timestamp: new Date(),
     } as ChatMessage;
 
-    await topic.publishMessage({ json: message });
+    await topic.publishMessage({ json: message, orderingKey: "chatOrderKey" });
     res.status(200).send("OK");
   } else {
     console.error(`channel/topic with id ${topicName} not found`);
