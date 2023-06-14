@@ -7,6 +7,7 @@ import sanitizeHtml from "sanitize-html";
 import session from "express-session";
 import fileStore from "session-file-store";
 import cors from "cors";
+import client from "./pub-sub-client";
 
 interface ChatUser {
   name: string;
@@ -16,6 +17,10 @@ interface ChatMessage {
   author: ChatUser;
   message: string;
   timestamp: Date;
+}
+
+interface ChatIncomingMessage {
+  message: string;
 }
 
 const testMessage = {
@@ -30,6 +35,7 @@ config();
 const app = express();
 const port = process.env.PORT;
 
+app.use(express.json());
 app.use(express.static(join(__dirname, "front")));
 
 const FileStore = fileStore(session);
@@ -166,6 +172,35 @@ app.get("/api/channel/:id", async (req: Request, res: Response) => {
   } catch (e) {
     console.log("error", e);
     res.status(404).send(e);
+  }
+});
+
+app.post("/api/channel/:id", async (req: Request, res: Response) => {
+  const topicName = req.params.id;
+  const topic = pubSubClient.topic(topicName);
+
+  const requestJson = req.body as ChatIncomingMessage;
+  if (requestJson.message == null) {
+    console.error("received empty message or badly formated data in post/channel/id");
+    return;
+  }
+
+  // we might get rid of this checking in future, as it for large amount of users this might have impact (additional request per each message)
+  const [isTopicAvailable] = await topic.exists();
+  if (isTopicAvailable) {
+    const message = {
+      author: {
+        name: req.session.id
+      },
+      message:  sanitizeHtml(requestJson.message),
+      timestamp: new Date()
+    } as ChatMessage
+
+    await topic.publishMessage({ json: message });
+    res.status(200).send();
+  } else {
+    console.error(`channel/topic with id ${topicName} not found`);
+    res.status(404).send();
   }
 });
 
