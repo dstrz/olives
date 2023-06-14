@@ -1,6 +1,5 @@
 import { EventEmitter } from 'events';
-import hash from "object-hash";
-import pubSubClient, { getOrCreateSubscription } from "./pub-sub-client";
+import { getOrCreateSubscription } from "./pub-sub-client";
 import sanitizeHtml from "sanitize-html";
 import { Message, Subscription } from '@google-cloud/pubsub';
 
@@ -14,7 +13,6 @@ interface ChatMessage {
     author: ChatUser;
     message: string;
     timestamp: string;
-    hash: string | null;
 }
 
 interface ChannelSub {
@@ -24,7 +22,6 @@ interface ChannelSub {
     messageCache: ChatMessage[];
     lastAccessed: Date;
     clients: number;
-    killFunc: NodeJS.Timeout | null;
 }
 
 function extractMessageFromEventData(event: Message) {
@@ -40,33 +37,12 @@ function extractMessageFromEventData(event: Message) {
         }
 
         chatMessage.message = sanitizeHtml(chatMessage.message);
-        chatMessage.hash = hash(chatMessage.message);
         return chatMessage;
     } catch (e) {
         // console.log("failed to parse message:", e, event);
     }
 
     return null;
-}
-
-function  binaryInsertion(arr, element) {
-    return binaryHelper(arr, element, 0, arr.length - 1);
-}
-
-function binaryHelper(arr, element, lBound, uBound) {
-    if (uBound - lBound === 1) {
-        // binary search ends, we need to insert the element around here       
-        if (element.date < arr[lBound].date) arr.splice(lBound, 0, element);
-        else if (element.date > arr[uBound].date) arr.splice(uBound+1, 0, element);
-        else arr.splice(uBound, 0, element);
-    } else {       
-        // we look for the middle point
-        const midPoint = Math.floor((uBound - lBound) / 2) + lBound;
-        // depending on the value in the middle, we repeat the operation only on one slice of the array, halving it each time
-        element.date < arr[midPoint].date
-            ? binaryHelper(arr, element, lBound, midPoint)
-            : binaryHelper(arr, element, midPoint, uBound);
-    }
 }
 
 class ChannelListener {
