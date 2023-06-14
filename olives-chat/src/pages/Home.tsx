@@ -10,7 +10,8 @@ const Home = () => {
       })
       .then((data) => {
         setChannels(data);
-      });
+      })
+      .catch(() => {});
   };
 
   useEffect(() => {
