@@ -4,7 +4,12 @@ Hackathon chat application that utilizes Google Cloud Pub/Sub API.
 
 Developed on NodeJS version `18.10.0`
 
-create `.env` file in root directory with e.g. PORT value to host app on `localhost:<PORT>`
+## .env file
+
+create `.env` file in root directory with e.g.`PORT=80` value to host app on `localhost:80`
+add `COOKIE_SECRET` to `.env`
+
+## How to run
 
 start with
 `npm i` command to install dependencies
