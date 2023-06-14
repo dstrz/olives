@@ -1,4 +1,5 @@
 import pubSubClient from "./pub-sub-client";
+import { faker } from '@faker-js/faker';
 import express, { Request, Response } from "express";
 import { config } from "dotenv";
 import { Message, Subscription, Topic } from "@google-cloud/pubsub";
@@ -185,29 +186,35 @@ app.post("/api/channel/:id", async (req: Request, res: Response) => {
 
   // we might get rid of this checking in future, as it for large amount of users this might have impact (additional request per each message)
   const [isTopicAvailable] = await topic.exists();
-  if (isTopicAvailable) {
+  const hasUserName = req.session.userName != null;
+
+  if (isTopicAvailable && hasUserName) {
     const message = {
       author: {
-        name: req.session.id
+        name: req.session.userName
       },
-      message:  sanitizeHtml(requestJson.message),
+      message: sanitizeHtml(requestJson.message),
       timestamp: new Date()
     } as ChatMessage
 
     await topic.publishMessage({ json: message });
     res.status(200).send();
   } else {
-    console.error(`channel/topic with id ${topicName} not found`);
-    res.status(404).send();
+    if (!hasUserName) {
+      res.status(500).send("user name not initialized");
+    } else {
+      console.error(`channel/topic with id ${topicName} not found`);
+      res.status(404).send();
+    }
   }
 });
 
 app.get("/api/get-my-name", (req: Request, res: Response) => {
-  if(req.session.userName == null) {
-    // generate
+  if (req.session.userName == null) {
+    req.session.userName = faker.animal.dog();
   }
 
-  res.send(req.session.id);
+  res.send(req.session.userName);
 });
 
 app.get("*", async (req: Request, res: Response) => {

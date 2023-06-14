@@ -15,6 +15,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@faker-js/faker": "^8.0.2",
     "@google-cloud/pubsub": "^3.7.1",
     "@types/express-session": "^1.17.7",
     "cors": "^2.8.5",
