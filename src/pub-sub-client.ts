@@ -12,26 +12,34 @@ export const getTopics = () =>
     );
 
 export async function getOrCreateSubscription(
-  channelName: string
+  channelName: string,
+  userId: string
 ): Promise<Subscription | null> {
-  const subName = `subscription-for-channel-${channelName}`;
+  const subscriptionName = `${channelName}-user-${userId}`;
 
   try {
-    const subscription = client.subscription(subName);
+    const subscription = client.subscription(subscriptionName);
 
-    console.log("getting sub status...");
     const [isSubscriptionActive] = await subscription.exists();
-
-    console.log("getting sub status result", isSubscriptionActive);
-
     if (isSubscriptionActive) {
+      console.log("sub found:", subscription.name);
       return subscription;
     }
 
-    return createSubscription(channelName, subName);
+    return createSubscription(channelName, subscriptionName);
   } catch (error) {
     console.error("unknown error when getting subscription", error);
     return null;
+  }
+}
+
+export async function removeSubscription(subscriptionName: string) {
+  try {
+    // const subscription = client.subscription(subscriptionName);
+    // await subscription.close();
+    // await subscription.delete();
+  } catch (error) {
+    console.log("couldn't remove subscription", error);
   }
 }
 
@@ -40,7 +48,6 @@ export async function createSubscription(
   subscriptionName: string
 ): Promise<Subscription | null> {
   try {
-    console.log("creating subscription");
     const [result] = await client.createSubscription(
       channelName,
       subscriptionName,
@@ -48,6 +55,8 @@ export async function createSubscription(
         enableMessageOrdering: true,
       }
     );
+
+    console.log(`creating sub for ${channelName} with name ${subscriptionName}`);
 
     return result;
   } catch (error) {

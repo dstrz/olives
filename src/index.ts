@@ -12,6 +12,7 @@ import { Message } from "@google-cloud/pubsub";
 import pubSubClient, {
   getOrCreateSubscription,
   getTopics,
+  removeSubscription
 } from "./pub-sub-client";
 
 interface ChatUser {
@@ -102,13 +103,15 @@ app.get("/api/channel/:id", async (req: Request, res: Response) => {
     res.flushHeaders(); // flush the headers to establish SSE with client
 
     // todo: better error handling maybe
-    const subscription = await getOrCreateSubscription(topicName);
+    const subscription = await getOrCreateSubscription(topicName, req.session.id);
     if (subscription == null) {
       res.status(404);
       return;
     }
 
+    console.log("listening for messages");
     subscription.on("message", (event: Message) => {
+      console.log("onMessageReceived");
       const message = extractMessageFromEventData(event);
 
       if (message != null) {
@@ -118,8 +121,8 @@ app.get("/api/channel/:id", async (req: Request, res: Response) => {
 
     // If client closes connection, stop sending events
     res.on("close", () => {
-      console.log("client dropped me");
-      subscription.close();
+      console.log("client dropped me, cleaning sub", subscription.name);
+      removeSubscription(subscription.name);
       res.end();
     });
   } catch (e) {
@@ -129,6 +132,7 @@ app.get("/api/channel/:id", async (req: Request, res: Response) => {
 });
 
 app.post("/api/channel/:id", async (req: Request, res: Response) => {
+  console.log("on messageSend")
   const topicName = req.params.id;
   const topic = pubSubClient.topic(topicName, { messageOrdering: true });
 
