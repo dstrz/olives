@@ -1,5 +1,12 @@
-import React, { useEffect, useState, useRef, KeyboardEvent } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  KeyboardEvent,
+  useContext,
+} from "react";
 import { useParams } from "react-router-dom";
+import NameContext from "../name-context";
 import { formatDate, getDevUrl, isDev } from "../utils";
 
 interface ChatUser {
@@ -20,13 +27,14 @@ type Message = {
 
 const Channel = () => {
   const { channelName } = useParams();
+  const user = useContext(NameContext);
   const textRef = useRef<HTMLInputElement>(null);
   const sendMessage = () => {
     const text = textRef.current?.value;
     if (!text) return;
 
     if (isDev()) {
-      setMessages([...messages, { user: "me", date: new Date(), text }]);
+      setMessages([...messages, { user, date: new Date(), text }]);
     } else {
       //TODO: sent message to server
     }
