@@ -40,7 +40,7 @@ const Channel = () => {
       method: "POST",
       body: JSON.stringify({ message: text }),
       headers: { "Content-Type": "application/json" },
-    }).catch(() => {});
+    }).catch(() => { });
     // }
 
     textRef.current.value = "";
@@ -59,6 +59,10 @@ const Channel = () => {
     );
     eventSource.onmessage = (ev) => {
       const message = JSON.parse(ev.data) as ChatMessage;
+      if (message.author == null) {
+        return;
+      }
+
       setMessages((messages) => [
         ...messages,
         {

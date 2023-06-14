@@ -14,7 +14,7 @@ export const getTopics = () =>
 export async function getOrCreateSubscription(
   channelName: string
 ): Promise<Subscription | null> {
-  const subName = `subscription-for-channel-${channelName}`;
+  const subName = `subscription-for-channel-${channelName}-PPTEST2`;
 
   try {
     const subscription = client.subscription(subName);

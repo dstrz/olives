@@ -9,6 +9,8 @@ import fileStore from "session-file-store";
 import { faker } from "@faker-js/faker";
 import { Message } from "@google-cloud/pubsub";
 
+import ChannelListener from "./channelListener";
+
 import pubSubClient, {
   getOrCreateSubscription,
   getTopics,
@@ -87,6 +89,7 @@ function extractMessageFromEventData(event: Message) {
   return null;
 }
 
+
 /*
   We are using SSE to communicate with client. 
   Only one subscription for whole channel and multiple users. PP - Not sure if this is good approach but I dont see downsides
@@ -101,27 +104,43 @@ app.get("/api/channel/:id", async (req: Request, res: Response) => {
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders(); // flush the headers to establish SSE with client
 
-    // todo: better error handling maybe
-    const subscription = await getOrCreateSubscription(topicName);
-    if (subscription == null) {
-      res.status(404);
-      return;
-    }
+    // pp - copied from stackow
+    // function to send server sent events (sse)
+    const sendSSE = data => {
+      const dataToSend = JSON.stringify(data);
 
-    subscription.on("message", (event: Message) => {
-      const message = extractMessageFromEventData(event);
+      console.log(`sendSSE ${dataToSend}`);
 
-      if (message != null) {
-        res.write(`data: ${JSON.stringify(message)}\n\n`);
+      res.write(`data: ${dataToSend}`);
+      res.write("\n\n");
+
+      // this is the important part if using the compression npm module
+      res.flushHeaders();
+    };
+
+    const onMsgFunc = (msg: ChatMessage) => {
+      console.log("onMsgFunc of request", msg);
+      if (msg == null) {
+        return;
       }
-    });
 
-    // If client closes connection, stop sending events
+      sendSSE(msg);
+    };
+
+    const listener = ChannelListener.getInstance();
+    
+    setInterval(() => {
+      sendSSE({ message: {} });
+    }, 5000);
+
     res.on("close", () => {
       console.log("client dropped me");
-      subscription.close();
+      listener.unlistenChannel(topicName, onMsgFunc);
       res.end();
     });
+
+    const history = await listener.listenChannel(topicName, onMsgFunc);
+    history.forEach(msg => sendSSE(msg));
   } catch (e) {
     console.log("error", e);
     res.status(404).send(e);
@@ -130,7 +149,7 @@ app.get("/api/channel/:id", async (req: Request, res: Response) => {
 
 app.post("/api/channel/:id", async (req: Request, res: Response) => {
   const topicName = req.params.id;
-  const topic = pubSubClient.topic(topicName, { messageOrdering: true });
+  const topic = pubSubClient.topic(topicName, { messageOrdering: false });
 
   const requestJson = req.body as ChatIncomingMessage;
   if (requestJson.message == null) {
@@ -151,7 +170,10 @@ app.post("/api/channel/:id", async (req: Request, res: Response) => {
       timestamp: new Date(),
     } as ChatMessage;
 
-    await topic.publishMessage({ json: message, orderingKey: "chatOrderKey" });
+    console.log("publishing message", message);
+
+    const result = await topic.publishMessage({ json: message });
+    console.log("message published:", result);
     res.status(200).send("OK");
   } else {
     console.error(`channel/topic with id ${topicName} not found`);
