@@ -7,7 +7,14 @@ import sanitizeHtml from "sanitize-html";
 import session from "express-session";
 import fileStore from "session-file-store";
 import cors from "cors";
-import client from "./pub-sub-client";
+
+// Augment express-session with a custom SessionData object
+declare module "express-session" {
+  interface SessionData {
+    userName: string;
+  }
+}
+
 
 interface ChatUser {
   name: string;
@@ -22,14 +29,6 @@ interface ChatMessage {
 interface ChatIncomingMessage {
   message: string;
 }
-
-const testMessage = {
-  author: {
-    name: "test-pp-gdc",
-  },
-  message: "message-test-1",
-  timestamp: new Date(),
-};
 
 config();
 const app = express();
@@ -98,11 +97,7 @@ async function getOrCreateSubscription(
 
   try {
     const subscription = pubSubClient.subscription(subName);
-
-    console.log("getting sub status...");
     const [isSubscriptionActive] = await subscription.exists();
-
-    console.log("getting sub status result", isSubscriptionActive);
 
     if (isSubscriptionActive) {
       return subscription;
@@ -123,7 +118,10 @@ async function createSubscription(
     console.log("creating subscription");
     const [result] = await pubSubClient.createSubscription(
       channelName,
-      subscriptionName
+      subscriptionName,
+      {
+        enableMessageOrdering: true
+      }
     );
 
     return result;
@@ -205,6 +203,10 @@ app.post("/api/channel/:id", async (req: Request, res: Response) => {
 });
 
 app.get("/api/get-my-name", (req: Request, res: Response) => {
+  if(req.session.userName == null) {
+    // generate
+  }
+
   res.send(req.session.id);
 });
 
